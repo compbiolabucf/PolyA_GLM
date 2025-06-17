@@ -24,3 +24,75 @@ Polyadenylation sites are critical regulatory elements in post-transcriptional g
 - Attention visualization: Models focus on AATAAA motifs and A-rich/T-rich 3' UTR regions without explicit supervision
 - Token-level precision: High-resolution identification achieving 0.87 AUC across 50M+ genomic positions
 - Cross-validation framework: Robust 5-fold evaluation ensuring reproducible results
+
+
+# 🛠️ Installation
+
+## Prerequisites
+
+- **Operating System**: Linux, macOS, or Windows with WSL2
+- **Python**: 3.8 or higher
+- **Memory**: At least 16GB RAM (32GB recommended for genome-wide analysis)
+- **GPU**: CUDA-compatible GPU with 8GB+ VRAM (recommended for model training)
+- **Storage**: At least 100GB free space for datasets and results
+
+## Method 1: Conda Environment (Recommended)
+
+### Step 1: Install Conda/Miniconda
+```bash
+# Download and install Miniconda (if not already installed)
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+# Follow the installation prompts and restart your terminal
+```
+
+### Step 2: Clone the Repository
+```bash
+git clone https://github.com/compbiolabucf/PolyA_GLM.git
+cd PolyA-GLM
+```
+
+### Step 3: Create and Activate Environment
+```bash
+# Create environment from the provided YAML file
+conda env create -f environment.yml
+
+# Activate the environment
+conda activate polya-glm
+
+# Verify installation
+python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+python -c "import transformers; print(f'Transformers version: {transformers.__version__}')"
+```
+
+## Method 2: Virtual Environment with pip
+
+### Step 1: Clone Repository
+```bash
+git clone https://github.com/compbiolabucf/PolyA_GLM.git
+cd PolyA-GLM
+```
+
+### Step 2: Create Virtual Environment
+```bash
+# Create virtual environment
+python -m venv polya_env
+
+# Activate environment
+source polya_env/bin/activate  # Linux/macOS
+# or
+polya_env\Scripts\activate  # Windows
+```
+
+### Step 3: Install Dependencies
+```bash
+# Upgrade pip
+pip install --upgrade pip
+
+# Install requirements
+pip install -r requirements.txt
+
+# Install the package in development mode
+pip install -e .
+```
+
