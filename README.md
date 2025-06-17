@@ -11,10 +11,9 @@ Polyadenylation sites are critical regulatory elements in post-transcriptional g
 
 - First genome-wide AI approach: Systematic identification of novel poly(A) sites across all human chromosomes using genome language models
 - Biological filtering: Stringent criteria based on canonical cleavage patterns (C/G-A dinucleotides) and 18 polyadenylation signal variants
-- High precision discovery: 35.6% precision with 1,600-fold enrichment over random selection
 - Complete genome coverage: Identification of functional sites missed by current annotations
 
-🤖 Advanced Multi-Model Architecture
+🤖 Multi-Model Architecture
 - Dual learning strategies: Few-shot classification (up to 0.75 AUC) and fine-tuning (up to 0.80 AUC)
 - Multi-scale analysis: Both sequence-level and token-level classification for comprehensive site identification
 - Long-range modeling: Capture genomic dependencies spanning thousands of nucleotides
