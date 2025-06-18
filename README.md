@@ -298,6 +298,255 @@ ls -la results/your_training_dir/fold_*/
 # View latest metrics
 cat results/your_training_dir/fold_1/val_results.json
 ```
+
+### Method 3: Few-Shot Classification
+
+#### Overview
+Few-shot classification enables **polyadenylation site prediction with minimal training data** by using prototype-based similarity matching. This approach is ideal when you have limited labeled data or want to quickly evaluate model capabilities without full fine-tuning.
+
+#### Features
+- **Minimal data requirements**: Uses only 2-10 prototype sequences per class
+- **No parameter updates**: Leverages pre-trained model embeddings directly
+- **Fast evaluation**: Quick assessment of model performance
+- **Prototype extraction**: Automatically selects representative sequences from training data
+- **Configurable thresholds**: Adjustable classification confidence levels
+- **Multiple model support**: Works with DNABERT2, Nucleotide Transformer, and HyenaDNA
+
+#### When to Use Few-Shot Classification
+- **Quick model evaluation**: Rapid assessment before full training
+- **Limited data scenarios**: When training data is scarce
+- **Baseline establishment**: Compare against fine-tuned models
+- **Cross-domain testing**: Evaluate model generalization
+- **Prototype analysis**: Understand what the model considers representative
+
+#### Step 1: Create Few-Shot Classification Script
+```bash
+# Create the few-shot classification script
+nano train_few_shot.sh
+```
+
+#### Step 2: Script Content
+```bash
+#!/bin/bash
+# Few-Shot Classification Training Script for PolyA-GLM
+
+# Configuration - MODIFY THESE PATHS
+MODEL_NAME="InstaDeepAI/nucleotide-transformer-500m-human-ref"    # Model to use for few-shot learning
+TRAIN_CSV="/path/to/your/fold_1/train.csv"                       # Training data for prototype extraction
+TEST_CSV="/path/to/your/fold_1/test.csv"                         # Test data for evaluation
+OUTPUT_DIR="results/few_shot_classification/"                     # Output directory
+RUN_NAME="few_shot_nt_fold1"                                     # Experiment name
+N_PROTOTYPES=2                                                    # Number of prototypes per class
+THRESHOLD=0.5                                                     # Classification threshold
+SEED=42                                                           # Random seed
+
+echo "Starting Few-Shot Classification..."
+echo "Model: $MODEL_NAME"
+echo "Training data: $TRAIN_CSV"
+echo "Test data: $TEST_CSV"
+echo "Output directory: $OUTPUT_DIR"
+echo "Prototypes per class: $N_PROTOTYPES"
+echo "Classification threshold: $THRESHOLD"
+
+# Create output directory
+mkdir -p "$OUTPUT_DIR"
+
+# Run few-shot classification
+python fewshot_model.py \
+    --model_name "$MODEL_NAME" \
+    --train_csv "$TRAIN_CSV" \
+    --test_csv "$TEST_CSV" \
+    --output_dir "$OUTPUT_DIR" \
+    --run_name "$RUN_NAME" \
+    --n_prototypes $N_PROTOTYPES \
+    --threshold $THRESHOLD \
+    --seed $SEED \
+    --device auto
+
+echo ""
+echo "Few-shot classification completed!"
+echo "Results saved to: $OUTPUT_DIR"
+echo ""
+echo "Check outputs:"
+echo "- Predictions: $OUTPUT_DIR/${RUN_NAME}_predictions.csv"
+echo "- Metrics: $OUTPUT_DIR/${RUN_NAME}_metrics.json"
+echo "- Report: $OUTPUT_DIR/${RUN_NAME}_report.txt"
+echo "- Prototypes: $OUTPUT_DIR/prototypes.json"
+
+# Optional: Display quick summary
+if [ -f "$OUTPUT_DIR/${RUN_NAME}_metrics.json" ]; then
+    echo ""
+    echo "Quick Results Summary:"
+    echo "====================="
+    python3 -c "
+import json
+with open('$OUTPUT_DIR/${RUN_NAME}_metrics.json', 'r') as f:
+    metrics = json.load(f)
+print(f'Accuracy: {metrics[\"accuracy\"]:.4f}')
+print(f'Precision: {metrics[\"precision\"]:.4f}')
+print(f'Recall: {metrics[\"recall\"]:.4f}')
+print(f'F1 Score: {metrics[\"f1\"]:.4f}')
+print(f'AUC: {metrics[\"auc\"]:.4f}')
+"
+fi
+```
+
+#### Step 3: Execute the Script
+```bash
+# Make script executable
+chmod +x train_few_shot.sh
+
+# Run few-shot classification
+./train_few_shot.sh
+```
+
+#### Optional: Background Execution
+```bash
+# Run in background with logging
+nohup ./train_few_shot.sh > fewshot_training.log 2>&1 &
+
+# Monitor progress
+tail -f fewshot_training.log
+
+# Check if running
+ps aux | grep "python fewshot_model.py"
+```
+
+#### Model-Specific Configuration
+
+##### DNABERT2 Few-Shot
+```bash
+# DNABERT2 configuration
+MODEL_NAME="zhihan1996/DNABERT-2-117M"
+RUN_NAME="few_shot_dnabert2_fold1"
+N_PROTOTYPES=2                              # Standard for DNABERT2
+THRESHOLD=0.5                               # Default threshold
+```
+
+##### Nucleotide Transformer Few-Shot
+```bash
+# Nucleotide Transformer configuration
+MODEL_NAME="InstaDeepAI/nucleotide-transformer-500m-human-ref"
+RUN_NAME="few_shot_nt_fold1"
+N_PROTOTYPES=3                              # Slightly more prototypes for larger model
+THRESHOLD=0.4                               # Lower threshold for higher sensitivity
+```
+
+##### HyenaDNA Few-Shot
+```bash
+# HyenaDNA configuration
+MODEL_NAME="LongSafari/hyenadna-medium-450k-seqlen-hf"
+RUN_NAME="few_shot_hyena_fold1"
+N_PROTOTYPES=2                              # Standard prototypes
+THRESHOLD=0.6                               # Higher threshold for precision
+```
+
+#### Advanced Configuration Options
+
+##### Multiple Prototype Testing
+```bash
+# Test different numbers of prototypes
+for n_proto in 1 2 3 5; do
+    python fewshot_model.py \
+        --model_name "InstaDeepAI/nucleotide-transformer-500m-human-ref" \
+        --train_csv "data/fold_1/train.csv" \
+        --test_csv "data/fold_1/test.csv" \
+        --output_dir "results/few_shot_prototypes/" \
+        --run_name "nt_${n_proto}proto" \
+        --n_prototypes $n_proto \
+        --seed 42
+done
+```
+
+##### Threshold Optimization
+```bash
+# Test different thresholds
+for thresh in 0.3 0.4 0.5 0.6 0.7; do
+    python fewshot_model.py \
+        --model_name "InstaDeepAI/nucleotide-transformer-500m-human-ref" \
+        --train_csv "data/fold_1/train.csv" \
+        --test_csv "data/fold_1/test.csv" \
+        --output_dir "results/few_shot_thresholds/" \
+        --run_name "nt_thresh${thresh}" \
+        --threshold $thresh \
+        --seed 42
+done
+```
+
+#### Data Format Requirements
+Your CSV files should contain:
+- **Raw Sequence**: DNA sequences (101bp for standard PolyA-GLM)
+- **Label**: Binary labels (0 or 1)
+
+```csv
+Raw Sequence,Label
+ATCGATCGATCG...,1
+GCTAGCTAGCTA...,0
+```
+
+#### Expected Outputs
+
+##### Directory Structure
+```
+results/few_shot_classification/
+├── few_shot_nt_fold1_predictions.csv      # Sequence-level predictions
+├── few_shot_nt_fold1_metrics.json         # Performance metrics
+├── few_shot_nt_fold1_report.txt           # Detailed report
+└── prototypes.json                        # Selected prototype sequences
+```
+
+##### Metrics Output
+The few-shot classification provides:
+- **Accuracy**: Overall classification accuracy
+- **Precision**: Positive class precision
+- **Recall**: Positive class recall  
+- **F1 Score**: Harmonic mean of precision and recall
+- **AUC**: Area under the ROC curve
+- **Confusion Matrix**: TP, FP, FN, TN counts
+
+#### Cross-Validation with Few-Shot
+
+##### Run Few-Shot Across All Folds
+```bash
+#!/bin/bash
+# Few-shot across all 5 folds
+
+MODEL_NAME="InstaDeepAI/nucleotide-transformer-500m-human-ref"
+BASE_DIR="results/cross_validation"
+OUTPUT_DIR="results/few_shot_cv"
+
+mkdir -p "$OUTPUT_DIR"
+
+for fold in {1..5}; do
+    echo "Running few-shot for fold $fold..."
+    
+    python fewshot_model.py \
+        --model_name "$MODEL_NAME" \
+        --train_csv "${BASE_DIR}/fold_${fold}/train.csv" \
+        --test_csv "${BASE_DIR}/fold_${fold}/test.csv" \
+        --output_dir "$OUTPUT_DIR" \
+        --run_name "nt_fold${fold}" \
+        --n_prototypes 2 \
+        --threshold 0.5 \
+        --seed 42
+done
+
+echo "Few-shot cross-validation completed!"
+```
+
+#### Integration with Pipeline
+
+##### Use Few-Shot for Initial Screening
+```bash
+# Quick model evaluation before full training
+./train_few_shot.sh
+
+# If results are promising, proceed with fine-tuning
+./train_polya_model.sh
+
+# Finally, run token classification for high-resolution analysis
+./train_token_classification.sh
+```
 ## Execution Checklist
 
 Before running training, ensure:
