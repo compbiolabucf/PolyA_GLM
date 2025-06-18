@@ -96,3 +96,125 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+# 🏃 How to Run PolyA-GLM Training
+
+## Step-by-Step Execution Guide
+
+### Step 1: Prepare Your Environment
+```bash
+# Activate your conda environment
+conda activate polya-glm
+
+# Navigate to the project directory
+cd PolyA-GLM/
+
+# Verify your data is ready
+ls data/your_dataset/merged.csv  # Should exist with sequences in column 4, labels in column 6
+```
+
+### Step 2: Create a bash file
+
+```bash
+# Create a new bash script
+nano train_polya.sh
+```
+
+### Step 3: Copy the Script Content
+```bash
+#!/bin/bash
+# PolyA-GLM Training Script
+
+# Configuration - MODIFY THESE PATHS
+data_path="/home/sourav/Poly_A_Site/data/Human/intergene"  # Path to directory containing merged.cs
+lr=1e-6
+MAX_LENGTH=512
+seed=42
+
+
+echo "Starting PolyA-GLM training with data_path: $data_path"
+
+python train.py \
+    --model_name_or_path zhihan1996/DNABERT-2-117M \ # Pre-trained model from HuggingFace
+    --data_path ${data_path} \
+    --kmer -1 \ # For NMT use kmer number
+    --run_name DNABERT2_polya_seed${seed} \ # Experiment name for tracking 
+    --model_max_length ${MAX_LENGTH} \ # Maximum input sequence length
+    --per_device_train_batch_size 4 \ # Training batch size per GPU
+    --per_device_eval_batch_size 4 \ # Evaluation batch size per GPU
+    --gradient_accumulation_steps 1 \ # Number of steps to accumulate gradients. Increase if you need larger effective batch size. Effective batch = batch_size * accumulation_steps
+    --learning_rate ${lr} \ # Base learning rate for optimizer
+    --num_train_epochs 3 \ # Number of training epochs
+    --fp16 \
+    --save_steps 200 \ # Save model checkpoint every N steps 
+    --output_dir results/dnabert2_polya_training/ \ # Directory to save results and models
+    --evaluation_strategy steps \ # When to run evaluation. 'steps': Evaluate every eval_steps, 'epoch': Evaluate at end of each epoch
+    --eval_steps 200 \ # Evaluate every N training steps
+    --warmup_steps 50 \ # Number of warmup steps for learning rate
+    --logging_steps 200 \ # Log training metrics every N steps
+    --overwrite_output_dir True \ # Overwrite existing output directory. Set to False to prevent accidental overwrites
+    --log_level info \
+    --seed ${seed} # Random seed for reproducible results. Ensures same train/val/test splits across runs
+
+echo "Training completed! Check results in results/dnabert2_polya_training/"
+```
+
+### Step 4: Make Script Executable and Run
+```bash
+# Make the script executable
+chmod +x train_polya.sh
+
+# Run the training
+./train_polya.sh
+```
+
+## Optional
+### Run in Background with Logging
+```bash
+# Run training in background with output logging
+nohup ./train_polya.sh > training_output.log 2>&1 &
+
+# Check the process
+ps aux | grep train.py
+
+# Monitor progress
+tail -f training_output.log
+```
+
+## Real-Time Monitoring During Training
+
+### Monitor GPU Usage
+```bash
+# In a separate terminal, monitor GPU
+watch -n 1 nvidia-smi
+```
+
+### Monitor Training Progress
+```bash
+# Watch training logs
+tail -f results/your_training_dir/fold_*/train.log
+
+# Monitor CPU/Memory usage
+htop
+```
+
+### Check Training Status
+```bash
+# Check if training is still running
+ps aux | grep "python train.py"
+
+# Check current fold progress
+ls -la results/your_training_dir/fold_*/
+
+# View latest metrics
+cat results/your_training_dir/fold_1/val_results.json
+```
+## Execution Checklist
+
+Before running training, ensure:
+
+- [ ] **Environment activated**: `conda activate polya-glm`
+- [ ] **Data prepared**: `merged.csv` exists in your data directory
+- [ ] **GPU available**: `nvidia-smi` shows available memory
+- [ ] **Output directory**: Ensure sufficient disk space
+- [ ] **Permissions**: Scripts are executable (`chmod +x script.sh`)
+
