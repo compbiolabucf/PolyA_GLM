@@ -180,6 +180,96 @@ ps aux | grep train.py
 tail -f training_output.log
 ```
 
+### Token Classification Training
+
+#### Overview
+Token classification provides **nucleotide-level polyadenylation site prediction**, identifying individual nucleotides that correspond to polyadenylation sites across long genomic sequences.
+
+#### Step 1: Create Token Classification Script
+```bash
+# Create the token classification training script
+nano train_token_classification.sh
+```
+
+#### Step 2: Script Content
+```bash
+#!/bin/bash
+# Token Classification Training Script for PolyA-GLM
+
+# Configuration - MODIFY THESE PATHS
+BASE_MODEL_PATH="LongSafari/hyenadna-small-32k-seqlen-hf"     # HyenaDNA model path
+MERGED_CSV="/path/to/your/token_classification_v2.csv"        # Your token classification data
+OUTPUT_DIR="results/token_classification_output/"              # Output directory
+NUM_LABELS=2                                                   # Binary classification
+EPOCHS=3                                                       # Training epochs
+BATCH_SIZE=1                                                   # Batch size (keep small for memory)
+SEED=42                                                        # Random seed
+
+echo "Starting Token Classification Training..."
+echo "Model: $BASE_MODEL_PATH"
+echo "Data: $MERGED_CSV"
+echo "Output: $OUTPUT_DIR"
+
+# Run token classification training
+python model.py \
+    --base_model_path "$BASE_MODEL_PATH" \
+    --merged_csv "$MERGED_CSV" \
+    --output_dir "$OUTPUT_DIR" \
+    --num_labels $NUM_LABELS \
+    --epochs $EPOCHS \
+    --batch_size $BATCH_SIZE \
+    --seed $SEED
+
+echo "Token classification training completed!"
+echo "Results saved to: $OUTPUT_DIR"
+echo ""
+echo "Check outputs:"
+echo "- Training/validation/test splits: $OUTPUT_DIR/*.csv"
+echo "- Token-level predictions: $OUTPUT_DIR/test_token_predictions.csv"
+echo "- Final model: $OUTPUT_DIR/final_model/"
+```
+
+#### Step 3: Execute the Script
+```bash
+# Make script executable
+chmod +x train_token_classification.sh
+
+# Run token classification training
+./train_token_classification.sh
+```
+
+#### Optional: Background Training (Recommended for Long Sequences)
+```bash
+# Run in background with logging
+nohup ./train_token_classification.sh > token_training.log 2>&1 &
+
+# Monitor progress
+tail -f token_training.log
+
+# Check if training is running
+ps aux | grep "python model.py"
+
+# Check GPU usage
+watch -n 1 nvidia-smi
+```
+
+#### Data Format Requirements
+Your CSV file should contain:
+- **sequence**: DNA sequences (up to 32,000 nucleotides)
+- **labels**: Space-separated binary labels (0 or 1) for each nucleotide
+
+```csv
+sequence,labels
+ATCGATCGATCG...,0 0 0 1 0 0 0 0 0 1 0 0...
+GCTAGCTAGCTA...,0 0 0 0 0 1 0 0 0 0 0 0...
+```
+
+#### Expected Outputs
+After training, your output directory will contain:
+- `train_split.csv`, `val_split.csv`, `test_split.csv` - Data splits
+- `test_token_predictions.csv` - Nucleotide-level predictions
+- `final_model/` - Trained model for inference
+
 ## Real-Time Monitoring During Training
 
 ### Monitor GPU Usage
